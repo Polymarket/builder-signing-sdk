@@ -1,5 +1,4 @@
-import "mocha";
-import { expect } from "chai";
+import { describe, it, expect } from "vitest";
 import { buildHmacSignature } from "../src/signing";
 
 describe("hmac", () => {
@@ -11,9 +10,9 @@ describe("hmac", () => {
             "/orders",
             '{"hash": "0x123"}',
         );
-        expect(signature).not.null;
-        expect(signature).not.undefined;
-        expect(signature).not.empty;
-        expect(signature).equal("ZwAdJKvoYRlEKDkNMwd5BuwNNtg93kNaR_oU2HrfVvc=");
+        expect(signature).not.toBeNull();
+        expect(signature).toBeDefined();
+        expect(signature.length).toBeGreaterThan(0);
+        expect(signature).toBe("ZwAdJKvoYRlEKDkNMwd5BuwNNtg93kNaR_oU2HrfVvc=");
     });
 });
