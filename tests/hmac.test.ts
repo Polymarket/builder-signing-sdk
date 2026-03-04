@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildHmacSignature } from "../src/signing";
+import { buildHmacSignature } from "../src/signing/index.js";
 
 describe("hmac", () => {
     it("buildHmacSignature", () => {

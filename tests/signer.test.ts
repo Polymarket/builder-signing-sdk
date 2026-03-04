@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { BuilderSigner, BuilderApiKeyCreds } from "../src";
+import { BuilderSigner, BuilderApiKeyCreds } from "../src/index.js";
 
 describe("builderHeaderPayload", () => {
     it("createBuilderHeaderPayload", () => {

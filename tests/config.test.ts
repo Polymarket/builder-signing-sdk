@@ -1,6 +1,6 @@
-import * as httpHelpers from '../src/http-helpers';
+import * as httpHelpers from '../src/http-helpers/index.js';
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { BuilderApiKeyCreds, BuilderConfig, BuilderHeaderPayload, BuilderType } from "../src";
+import { BuilderApiKeyCreds, BuilderConfig, BuilderHeaderPayload, BuilderType } from "../src/index.js";
 
 describe("builder config", () => {
     afterEach(() => {
