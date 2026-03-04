@@ -1,10 +1,12 @@
 import * as httpHelpers from '../src/http-helpers';
-import sinon from 'sinon';
-import "mocha";
-import { expect } from "chai";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { BuilderApiKeyCreds, BuilderConfig, BuilderHeaderPayload, BuilderType } from "../src";
 
 describe("builder config", () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
     it("isValid", () => {
         let builderConfig: BuilderConfig;
         const creds: BuilderApiKeyCreds = {
@@ -17,7 +19,7 @@ describe("builder config", () => {
         
         // isValid true
         builderConfig = new BuilderConfig({localBuilderCreds: creds});
-        expect(builderConfig.isValid()).true;
+        expect(builderConfig.isValid()).toBe(true);
     });
 
     it("getBuilderType", async () => {
@@ -28,17 +30,17 @@ describe("builder config", () => {
             passphrase: "1816e5ed89518467ffa78c65a2d6a62d240f6fd6d159cba7b2c4dc510800f75a",
         };
         builderConfig = new BuilderConfig({localBuilderCreds: creds});
-        expect(builderConfig.getBuilderType()).equal(BuilderType.LOCAL);
+        expect(builderConfig.getBuilderType()).toBe(BuilderType.LOCAL);
 
         builderConfig = new BuilderConfig({remoteBuilderConfig: {url: "http://localhost:3000/sign"} })
-        expect(builderConfig.getBuilderType()).equal(BuilderType.REMOTE);
+        expect(builderConfig.getBuilderType()).toBe(BuilderType.REMOTE);
 
         builderConfig = new BuilderConfig()
-        expect(builderConfig.getBuilderType()).equal(BuilderType.UNAVAILABLE);
+        expect(builderConfig.getBuilderType()).toBe(BuilderType.UNAVAILABLE);
 
         // if both local is preferred
         builderConfig = new BuilderConfig({localBuilderCreds: creds, remoteBuilderConfig: {url: "http://localhost:3000/sign"}})
-        expect(builderConfig.getBuilderType()).equal(BuilderType.LOCAL);
+        expect(builderConfig.getBuilderType()).toBe(BuilderType.LOCAL);
     });
 
     it("generateBuilderHeaders", async () => {
@@ -60,17 +62,16 @@ describe("builder config", () => {
             timestamp,
         ) as BuilderHeaderPayload;
 
-        expect(headers).not.null;
-        expect(headers).not.undefined;
-        expect(headers).not.empty;
-        expect(headers.POLY_BUILDER_API_KEY).equal("019894b9-cb40-79c4-b2bd-6aecb6f8c6c5");
-        expect(headers.POLY_BUILDER_PASSPHRASE).equal("1816e5ed89518467ffa78c65a2d6a62d240f6fd6d159cba7b2c4dc510800f75a");
-        expect(headers.POLY_BUILDER_TIMESTAMP).equal("1758744060");
-        expect(headers.POLY_BUILDER_SIGNATURE).equal("8xh8d0qZHhBcLLYbsKNeiOW3Z0W2N5yNEq1kCVMe5QE=");
+        expect(headers).not.toBeNull();
+        expect(headers).toBeDefined();
+        expect(Object.keys(headers).length).toBeGreaterThan(0);
+        expect(headers.POLY_BUILDER_API_KEY).toBe("019894b9-cb40-79c4-b2bd-6aecb6f8c6c5");
+        expect(headers.POLY_BUILDER_PASSPHRASE).toBe("1816e5ed89518467ffa78c65a2d6a62d240f6fd6d159cba7b2c4dc510800f75a");
+        expect(headers.POLY_BUILDER_TIMESTAMP).toBe("1758744060");
+        expect(headers.POLY_BUILDER_SIGNATURE).toBe("8xh8d0qZHhBcLLYbsKNeiOW3Z0W2N5yNEq1kCVMe5QE=");
     });
 
     it("generateHeaders - remote", async () => {
-        // Mock remote signer endpoint
         const remoteSignerUrl = "http://localhost:3000/sign";
         const mockResponse: BuilderHeaderPayload = {
             POLY_BUILDER_API_KEY: "test-api-key",
@@ -79,14 +80,13 @@ describe("builder config", () => {
             POLY_BUILDER_SIGNATURE: "test-signature"
         };
 
-        sinon.stub(httpHelpers, 'post').resolves(mockResponse);
+        vi.spyOn(httpHelpers, 'post').mockResolvedValue(mockResponse);
 
-        // Create config with remote signer URL
         const builderConfig = new BuilderConfig({
             remoteBuilderConfig: {url: remoteSignerUrl}
         });
 
-        expect(builderConfig.getBuilderType()).equal(BuilderType.REMOTE);
+        expect(builderConfig.getBuilderType()).toBe(BuilderType.REMOTE);
 
         const requestMethod = "POST";
         const requestPath = "/order";
@@ -100,14 +100,13 @@ describe("builder config", () => {
             timestamp
         );
 
-        // Verify the response
-        expect(headers).not.null;
-        expect(headers).not.undefined;
-        expect(headers).to.deep.equal(mockResponse);
-        expect(headers!.POLY_BUILDER_API_KEY).equal("test-api-key");
-        expect(headers!.POLY_BUILDER_TIMESTAMP).equal("1758744060");
-        expect(headers!.POLY_BUILDER_PASSPHRASE).equal("test-passphrase");
-        expect(headers!.POLY_BUILDER_SIGNATURE).equal("test-signature");
+        expect(headers).not.toBeNull();
+        expect(headers).toBeDefined();
+        expect(headers).toEqual(mockResponse);
+        expect(headers!.POLY_BUILDER_API_KEY).toBe("test-api-key");
+        expect(headers!.POLY_BUILDER_TIMESTAMP).toBe("1758744060");
+        expect(headers!.POLY_BUILDER_PASSPHRASE).toBe("test-passphrase");
+        expect(headers!.POLY_BUILDER_SIGNATURE).toBe("test-signature");
     });
 
 });

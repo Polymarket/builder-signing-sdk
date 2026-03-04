@@ -28,7 +28,7 @@ const builderConfig = new BuilderConfig(
 );
 
 const headers = await builderConfig.generateBuilderHeaders(
-  'POST'                   // HTTP method
+  'POST'                  // HTTP method
   '/order',               // API endpoint path
   '{"marketId": "0x123"}' // Request body
 );
@@ -44,7 +44,7 @@ const builderConfig = new BuilderConfig(
 );
 
 const headers = await builderConfig.generateBuilderHeaders(
-  'POST'                   // HTTP method
+  'POST'                  // HTTP method
   '/order',               // API endpoint path
   '{"marketId": "0x123"}' // Request body
 );
