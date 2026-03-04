@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import { createHmac } from "node:crypto";
 
 function replaceAll(s: string, search: string, replace: string) {
     return s.split(search).join(replace);
@@ -25,7 +25,7 @@ export const buildHmacSignature = (
     }
 
     const base64Secret = Buffer.from(secret, "base64");
-    const hmac = crypto.createHmac("sha256", base64Secret);
+    const hmac = createHmac("sha256", base64Secret);
     const sig = hmac.update(message).digest("base64");
 
     // NOTE: Must be url safe base64 encoding, but keep base64 "=" suffix

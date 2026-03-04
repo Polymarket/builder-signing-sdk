@@ -1,5 +1,5 @@
-import { buildHmacSignature } from "./signing";
-import { BuilderApiKeyCreds, BuilderHeaderPayload } from "./types";
+import { buildHmacSignature } from "./signing/index.js";
+import { BuilderApiKeyCreds, BuilderHeaderPayload } from "./types.js";
 
 
 export class BuilderSigner {
