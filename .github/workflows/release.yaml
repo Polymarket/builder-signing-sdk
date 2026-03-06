@@ -7,7 +7,7 @@ on:
 jobs:
     publish:
         name: Publish to npm
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-latest
         permissions:
             contents: read
             id-token: write
@@ -21,10 +21,12 @@ jobs:
             - name: Setup Node.js
               uses: actions/setup-node@v4
               with:
-                  node-version: "22"
+                  node-version: 24
                   registry-url: "https://registry.npmjs.org"
 
             - run: pnpm install --frozen-lockfile
             - run: pnpm test
             - run: pnpm build
-            - run: pnpm publish --no-git-checks --access public --provenance
+
+            - name: Publish to npm
+              run: pnpm publish --access public --provenance --no-git-checks
