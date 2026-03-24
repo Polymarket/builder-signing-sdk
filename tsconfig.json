@@ -10,9 +10,9 @@
         "./node_modules/@types/node/index.d.ts",
     ],
     "compilerOptions": {
-        "baseUrl": "./",
         "module": "nodenext",
         "target": "esnext",
+        "rootDir": "./src",
         "outDir": "./dist",
         "sourceMap": true,
         "declaration": true,
@@ -25,6 +25,7 @@
         "resolveJsonModule": true,
         "strictNullChecks": true,
         "typeRoots": ["node_modules/@types"],
+        "types": ["node"],
         "lib": ["es2022"],
         "skipLibCheck": true
     }
