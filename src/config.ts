@@ -5,16 +5,16 @@ import {
     BuilderHeaderPayload,
     BuilderType,
     RemoteBuilderConfig,
-    RemoteSignerPayload 
+    RemoteSignerPayload,
 } from "./types.js";
-import { AxiosRequestHeaders } from 'axios';
+import { AxiosRequestHeaders } from "axios";
 
 export class BuilderConfig {
     readonly remoteBuilderConfig?: RemoteBuilderConfig;
     readonly localBuilderCreds?: BuilderApiKeyCreds;
     readonly signer?: BuilderSigner;
 
-    constructor(config?: { 
+    constructor(config?: {
         remoteBuilderConfig?: RemoteBuilderConfig;
         localBuilderCreds?: BuilderApiKeyCreds;
     }) {
@@ -34,7 +34,7 @@ export class BuilderConfig {
             if (config.localBuilderCreds !== undefined) {
                 if (!BuilderConfig.hasValidLocalCreds(config.localBuilderCreds)) {
                     throw new Error("invalid local builder credentials!");
-                } 
+                }
                 this.localBuilderCreds = config.localBuilderCreds;
                 this.signer = new BuilderSigner(config.localBuilderCreds);
             }
@@ -42,10 +42,8 @@ export class BuilderConfig {
     }
 
     /**
-     * Helper function to generate builder headers using the configured credential method
-     * @param method 
-     * @param path 
-     * @param body 
+     * Helper function to generate builder headers using the configured credential method.
+     * Raw errors are deliberately caught and suppressed to avoid leaking sensitive bearer tokens.
      */
     public async generateBuilderHeaders(
         method: string,
@@ -57,33 +55,36 @@ export class BuilderConfig {
 
         const builderType = this.getBuilderType();
 
-        if (builderType == BuilderType.LOCAL) {
-            return Promise.resolve(this.signer?.createBuilderHeaderPayload(method, path, body, timestamp));
-        } 
-        
-        if (builderType == BuilderType.REMOTE) {
-            const url: string = (this.remoteBuilderConfig as RemoteBuilderConfig).url;
-            // Execute a POST to the remote signer url with the header arguments
+        if (builderType === BuilderType.LOCAL) {
+            return this.signer?.createBuilderHeaderPayload(method, path, body, timestamp);
+        }
+
+        if (builderType === BuilderType.REMOTE) {
+            const remoteConfig = this.remoteBuilderConfig as RemoteBuilderConfig;
+            const url: string = remoteConfig.url;
+
             const payload: RemoteSignerPayload = {
-                method: method,
-                path: path,
-                body: body,
-                timestamp: timestamp,
+                method,
+                path,
+                body,
+                timestamp,
             };
-            
+
             try {
-                const token = (this.remoteBuilderConfig as RemoteBuilderConfig).token;
-                return await post(url, {
-                    data: payload,
-                    headers: {
-                      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                    } as AxiosRequestHeaders,
-                  });
-            } catch (err) {
-                console.error("error calling remote signer", err);
+                const token = remoteConfig.token;
+                const headers: AxiosRequestHeaders = {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                } as AxiosRequestHeaders;
+
+                // Transmit payload and headers directly to the HTTP helper
+                return await post<BuilderHeaderPayload>(url, payload, { headers });
+            } catch {
+                // Suppress raw Axios errors to prevent leaking authorization headers to logs
                 return undefined;
             }
         }
+
         return undefined;
     }
 
@@ -95,7 +96,7 @@ export class BuilderConfig {
         const local = this.localBuilderCreds;
         const remote = this.remoteBuilderConfig;
         if (local && remote) {
-            // If both present, prefer local
+            // Local credentials take precedence when both are provided
             return BuilderType.LOCAL;
         }
         if (local) {
@@ -109,26 +110,35 @@ export class BuilderConfig {
 
     private static hasValidLocalCreds(creds?: BuilderApiKeyCreds): boolean {
         if (!creds) return false;
-        
-        const { key, secret, passphrase } = creds;
 
-        if (!key.trim()) return false;
-        
-        if (!secret.trim()) return false;
-        
-        if (!passphrase.trim()) return false;
-        
+        const { key, secret, passphrase } = creds;
+        if (!key || !key.trim()) return false;
+        if (!secret || !secret.trim()) return false;
+        if (!passphrase || !passphrase.trim()) return false;
+
         return true;
     }
-    
-      private static hasValidRemoteUrl(remoteUrl?: string): boolean {
-          if (!remoteUrl?.trim()) return false;
-          return remoteUrl.startsWith("http://") || remoteUrl.startsWith("https://");
-      }
-    
-      private ensureValid(): void {
-          if (this.getBuilderType() === BuilderType.UNAVAILABLE) {
-              throw new Error("invalid builder creds configured!");
-          }
-      }
+
+    /**
+     * Enforces HTTPS protocol and forbids embedded user credentials (user:password@)
+     */
+    private static hasValidRemoteUrl(remoteUrl?: string): boolean {
+        if (!remoteUrl || !remoteUrl.trim()) return false;
+        try {
+            const parsedUrl = new URL(remoteUrl);
+            return (
+                parsedUrl.protocol === "https:" &&
+                parsedUrl.username === "" &&
+                parsedUrl.password === ""
+            );
+        } catch {
+            return false;
+        }
+    }
+
+    private ensureValid(): void {
+        if (this.getBuilderType() === BuilderType.UNAVAILABLE) {
+            throw new Error("invalid builder creds configured!");
+        }
+    }
 }
