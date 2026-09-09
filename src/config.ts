@@ -56,7 +56,9 @@ export class BuilderConfig {
         const builderType = this.getBuilderType();
 
         if (builderType === BuilderType.LOCAL) {
-            return this.signer?.createBuilderHeaderPayload(method, path, body, timestamp);
+            return Promise.resolve(
+                this.signer?.createBuilderHeaderPayload(method, path, body, timestamp),
+            );
         }
 
         if (builderType === BuilderType.REMOTE) {
@@ -72,13 +74,13 @@ export class BuilderConfig {
 
             try {
                 const token = remoteConfig.token;
-                const headers: AxiosRequestHeaders = {
-                    "Content-Type": "application/json",
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                } as AxiosRequestHeaders;
-
-                // Transmit payload and headers directly to the HTTP helper
-                return await post<BuilderHeaderPayload>(url, payload, { headers });
+                // Preserve the RequestOptions wrapper expected by http-helpers/index.ts
+                return await post<BuilderHeaderPayload>(url, {
+                    data: payload,
+                    headers: {
+                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    } as AxiosRequestHeaders,
+                });
             } catch {
                 // Suppress raw Axios errors to prevent leaking authorization headers to logs
                 return undefined;
