@@ -32,14 +32,14 @@ describe("builder config", () => {
         builderConfig = new BuilderConfig({localBuilderCreds: creds});
         expect(builderConfig.getBuilderType()).toBe(BuilderType.LOCAL);
 
-        builderConfig = new BuilderConfig({remoteBuilderConfig: {url: "http://localhost:3000/sign"} })
+        builderConfig = new BuilderConfig({remoteBuilderConfig: {url: "https://localhost:3000/sign"} })
         expect(builderConfig.getBuilderType()).toBe(BuilderType.REMOTE);
 
         builderConfig = new BuilderConfig()
         expect(builderConfig.getBuilderType()).toBe(BuilderType.UNAVAILABLE);
 
         // if both local is preferred
-        builderConfig = new BuilderConfig({localBuilderCreds: creds, remoteBuilderConfig: {url: "http://localhost:3000/sign"}})
+        builderConfig = new BuilderConfig({localBuilderCreds: creds, remoteBuilderConfig: {url: "https://localhost:3000/sign"}})
         expect(builderConfig.getBuilderType()).toBe(BuilderType.LOCAL);
     });
 
@@ -72,7 +72,7 @@ describe("builder config", () => {
     });
 
     it("generateHeaders - remote", async () => {
-        const remoteSignerUrl = "http://localhost:3000/sign";
+        const remoteSignerUrl = "https://localhost:3000/sign";
         const mockResponse: BuilderHeaderPayload = {
             POLY_BUILDER_API_KEY: "test-api-key",
             POLY_BUILDER_TIMESTAMP: "1758744060",
@@ -107,6 +107,29 @@ describe("builder config", () => {
         expect(headers!.POLY_BUILDER_TIMESTAMP).toBe("1758744060");
         expect(headers!.POLY_BUILDER_PASSPHRASE).toBe("test-passphrase");
         expect(headers!.POLY_BUILDER_SIGNATURE).toBe("test-signature");
+    });
+
+    it("rejects insecure or credential-bearing remote signer URLs", () => {
+        expect(() => new BuilderConfig({
+            remoteBuilderConfig: { url: "http://signer.example/sign", token: "token" },
+        })).toThrow("invalid remote url!");
+        expect(() => new BuilderConfig({
+            remoteBuilderConfig: { url: "https://user:password@signer.example/sign" },
+        })).toThrow("invalid remote url!");
+        expect(() => new BuilderConfig({
+            remoteBuilderConfig: { url: "not-a-url" },
+        })).toThrow("invalid remote url!");
+    });
+
+    it("does not log remote signer errors", async () => {
+        vi.spyOn(httpHelpers, "post").mockRejectedValue(new Error("authorization token leaked"));
+        const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+        const builderConfig = new BuilderConfig({
+            remoteBuilderConfig: { url: "https://signer.example/sign", token: "token" },
+        });
+
+        await expect(builderConfig.generateBuilderHeaders("POST", "/order")).resolves.toBeUndefined();
+        expect(consoleError).not.toHaveBeenCalled();
     });
 
 });
